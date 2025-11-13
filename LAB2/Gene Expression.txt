@@ -1,0 +1,117 @@
+import random
+import numpy as np
+
+# ---------------------------
+# Function Definitions
+# ---------------------------
+
+def create_cities(num_cities):
+    return [(random.uniform(0, 100), random.uniform(0, 100)) for _ in range(num_cities)]
+
+def distance(city1, city2):
+    return np.sqrt((city1[0] - city2[0])**2 + (city1[1] - city2[1])**2)
+
+def total_distance(tour, cities):
+    return sum(distance(cities[tour[i]], cities[tour[(i+1) % len(tour)]]) for i in range(len(tour)))
+
+def generate_population(pop_size, num_cities):
+    return [random.sample(range(num_cities), num_cities) for _ in range(pop_size)]
+
+def fitness(tour, cities):
+    return 1 / total_distance(tour, cities)
+
+def tournament_selection(population, cities, k=3):
+    selected = random.sample(population, k)
+    selected.sort(key=lambda t: fitness(t, cities), reverse=True)
+    return selected[0]
+
+def crossover(parent1, parent2):
+    size = len(parent1)
+    a, b = sorted(random.sample(range(size), 2))
+    child = [-1] * size
+    child[a:b] = parent1[a:b]
+    fill = [item for item in parent2 if item not in child]
+    ptr = 0
+    for i in range(size):
+        if child[i] == -1:
+            child[i] = fill[ptr]
+            ptr += 1
+    return child
+
+def mutate(tour, mutation_rate):
+    if random.random() < mutation_rate:
+        i, j = random.sample(range(len(tour)), 2)
+        tour[i], tour[j] = tour[j], tour[i]
+    return tour
+
+# ---------------------------
+# Genetic Algorithm Function
+# ---------------------------
+
+def genetic_algorithm_tsp(num_cities, pop_size, generations, crossover_rate=0.9, mutation_rate=0.02):
+    cities = create_cities(num_cities)
+    population = generate_population(pop_size, num_cities)
+    best_tour = min(population, key=lambda t: total_distance(t, cities))
+
+    for gen in range(generations):
+        new_population = []
+        for _ in range(pop_size):
+            parent1 = tournament_selection(population, cities)
+            parent2 = tournament_selection(population, cities)
+            if random.random() < crossover_rate:
+                child = crossover(parent1, parent2)
+            else:
+                child = parent1[:]
+            child = mutate(child, mutation_rate)
+            new_population.append(child)
+
+        population = new_population
+        current_best = min(population, key=lambda t: total_distance(t, cities))
+        if total_distance(current_best, cities) < total_distance(best_tour, cities):
+            best_tour = current_best
+
+    return best_tour, total_distance(best_tour, cities), cities
+
+# ---------------------------
+# Main Program with Input/Output
+# ---------------------------
+
+def main():
+    print("Travelling Salesman Problem - Genetic Algorithm")
+   
+    try:
+        num_cities = int(input("Enter number of cities (e.g., 10 - 50): "))
+        pop_size = int(input("Enter population size (e.g., 50 - 200): "))
+        generations = int(input("Enter number of generations (e.g., 100 - 1000): "))
+    except ValueError:
+        print("Please enter valid integers.")
+        return
+
+    print("\nRunning Genetic Algorithm...")
+    best_tour, best_distance, cities = genetic_algorithm_tsp(num_cities, pop_size, generations)
+
+    print("\n✅ Best Tour Found:")
+    print("Tour (city indices):", best_tour)
+    print(f"Total Distance: {best_distance:.2f}")
+
+    # Optional: Plot the tour
+    try:
+        import matplotlib.pyplot as plt
+        x = [cities[i][0] for i in best_tour] + [cities[best_tour[0]][0]]
+        y = [cities[i][1] for i in best_tour] + [cities[best_tour[0]][1]]
+        plt.figure(figsize=(8, 6))
+        plt.plot(x, y, 'o-', color='blue')
+        plt.title(f"TSP Best Tour (Distance: {best_distance:.2f})")
+        plt.xlabel("X")
+        plt.ylabel("Y")
+        plt.grid(True)
+        plt.show()
+    except ImportError:
+        print("\nTo visualize the tour, install matplotlib:\n  pip install matplotlib")
+
+# ---------------------------
+# Run the Program
+# ---------------------------
+
+if __name__ == "__main__":
+    main()
