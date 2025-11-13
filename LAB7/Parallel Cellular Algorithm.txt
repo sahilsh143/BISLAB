@@ -1,0 +1,50 @@
+import numpy as np
+from multiprocessing import Pool
+
+# Cell states
+ALIVE = 'A'
+BURNING = 'B'
+DEAD = 'D'
+
+def update_cell(args):
+    i, j, grid = args
+    if grid[i, j] == BURNING:
+        return DEAD
+    elif grid[i, j] == ALIVE:
+        # Catch fire if at least one neighbor is burning
+        neighbors = [(i-1,j), (i+1,j), (i,j-1), (i,j+1)]
+        for ni, nj in neighbors:
+            if 0 <= ni < grid.shape[0] and 0 <= nj < grid.shape[1]:
+                if grid[ni, nj] == BURNING:
+                    return BURNING
+        return ALIVE
+    else:
+        return DEAD
+
+def parallel_forest_fire(grid, steps):
+    for step in range(steps):
+        print(f"Step {step+1}:")
+        for row in grid:
+            print(' '.join(row))
+        print()
+        # Flattened cell indices for parallel processing
+        cell_args = [(i, j, grid) for i in range(grid.shape[0]) for j in range(grid.shape[1])]
+        with Pool() as pool:
+            new_states = pool.map(update_cell, cell_args)
+        grid = np.array(new_states).reshape(grid.shape)
+    return grid
+
+# Initial grid setup (4x4 example)
+grid = np.array([
+    [ALIVE, ALIVE, ALIVE, ALIVE],
+    [ALIVE, BURNING, ALIVE, ALIVE],
+    [ALIVE, ALIVE, ALIVE, ALIVE],
+    [ALIVE, ALIVE, ALIVE, ALIVE]
+])
+
+# Run simulation for 5 steps
+final_grid = parallel_forest_fire(grid, 5)
+
+print("Final Grid after 5 steps:")
+for row in final_grid:
+    print(' '.join(row))
