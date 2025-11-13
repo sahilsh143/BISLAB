@@ -1,0 +1,61 @@
+import random
+import math
+
+POP_SIZE = 20
+CHROM_LENGTH = 8
+MAX_GEN = 50
+CROSSOVER_RATE = 0.7
+MUTATION_RATE = 0.05
+
+def decode(chromosome):
+    return int(chromosome, 2)
+
+def fitness(chromosome):
+    x = decode(chromosome)
+    return x * x + 10 * math.sin(x)
+
+def select(population):
+    # Tournament selection
+    tournament = random.sample(population, 3)
+    return max(tournament, key=fitness)
+
+def crossover(p1, p2):
+    if random.random() < CROSSOVER_RATE:
+        point = random.randint(1, CHROM_LENGTH - 1)
+        return p1[:point] + p2[point:], p2[:point] + p1[point:]
+    return p1, p2
+
+def mutate(chromosome):
+    return ''.join(
+        bit if random.random() > MUTATION_RATE else '1' if bit == '0' else '0'
+        for bit in chromosome
+    )
+
+def genetic_algorithm():
+    population = [''.join(random.choice("01") for _ in range(CHROM_LENGTH))
+                  for _ in range(POP_SIZE)]
+    best = max(population, key=fitness)
+
+    for gen in range(MAX_GEN):
+        parents = [select(population) for _ in range(POP_SIZE)]
+        offspring = []
+        for i in range(0, POP_SIZE, 2):
+            c1, c2 = crossover(parents[i], parents[i+1])
+            offspring.extend([mutate(c1), mutate(c2)])
+        
+        # Elitism
+        worst_index = min(range(len(offspring)), key=lambda i: fitness(offspring[i]))
+        offspring[worst_index] = best
+
+        population = offspring
+        current_best = max(population, key=fitness)
+        if fitness(current_best) > fitness(best):
+            best = current_best
+        
+        print(f"Generation {gen+1}: Best x = {decode(best)} | Fitness = {fitness(best):.2f}")
+    
+    return best
+
+best_solution = genetic_algorithm()
+print("\nFinal Best Solution:")
+print(f"Chromosome: {best_solution}, x = {decode(best_solution)}, f(x) = {fitness(best_solution):.2f}")
